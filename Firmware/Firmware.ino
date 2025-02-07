@@ -19,6 +19,7 @@
 #define MOUSE_EXTRA1_BUTTON_PIN 8
 #define MOUSE_EXTRA2_BUTTON_PIN 9
 
+#define DEFAULT_CPI 100
 
 
 PMW3389 sensor;
@@ -56,7 +57,7 @@ void setup() {
     pinMode(PMW3389_SENSOR_RESET_PIN, OUTPUT);
     digitalWrite(PMW3389_SENSOR_RESET_PIN, HIGH);
     // signature check fails, but device works regardless
-    sensor.begin(PMW3389_SENSOR_NCS_PIN);
+    sensor.begin(PMW3389_SENSOR_NCS_PIN, DEFAULT_CPI);
 
     Serial.println("Initializing mouse...");
     Trackball.begin();
