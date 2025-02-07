@@ -19,6 +19,9 @@ public:
     void move(double x, double y);
     void scroll(double x, double y);
 
+    void setMoveScale(double scaleX, double scaleY);
+    void setScrollScale(double scaleX, double scaleY);
+
     auto send(bool force = false) -> bool;
 
 private:

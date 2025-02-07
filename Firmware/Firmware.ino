@@ -63,6 +63,8 @@ void setup() {
     Serial.println("Initializing mouse...");
     #endif
     Trackball.begin();
+    Trackball.setMoveScale(0.1, 0.1);
+    Trackball.setScrollScale(0.01, 0.01);
     #if defined(SERIAL_ENABLED) && (SERIAL_ENABLED > 0)
     Serial.println("Initialization done. Entering main loop...");
     #endif

@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include <HID.h>
 
 #include "Trackball.h"
@@ -86,6 +88,14 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
 };
 // clang-format on
 
+
+auto subtractMaxIntegral(double& value, double scale) -> int16_t {
+    double moveXNowF = 0.0;
+    value = modf(value * scale, &moveXNowF) / scale;
+    return static_cast<int16_t>(moveXNowF);
+}
+
+
 Trackball_t::Trackball_t() {
     static HIDSubDescriptor node(
       hidReportDescriptor,
@@ -145,6 +155,18 @@ void Trackball_t::scroll(double x, double y) {
     stateModified = stateModified || x != 0 || y != 0;
 }
 
+void Trackball_t::setMoveScale(double scaleX, double scaleY) {
+    moveX /= scaleX;
+    moveY /= scaleY;
+    moveScaleX = scaleX;
+    moveScaleY = scaleY;
+}
+
+void Trackball_t::setScrollScale(double scaleX, double scaleY) {
+    scrollX /= scaleX;
+    scrollY /= scaleY;
+    scrollScaleX = scaleX;
+    scrollScaleY = scaleY;
 }
 
 auto Trackball_t::send(bool force) -> bool {
@@ -153,20 +175,20 @@ auto Trackball_t::send(bool force) -> bool {
     }
 
     if (stateModified || force) {
+        auto moveXNow = subtractMaxIntegral(moveX, moveScaleX);
+        auto moveYNow = subtractMaxIntegral(moveY, moveScaleY);
+        auto scrollXNow = subtractMaxIntegral(scrollX, scrollScaleX);
+        auto scrollYNow = subtractMaxIntegral(scrollY, scrollScaleY);
+
         uint8_t dat1[] = {
             static_cast<uint8_t>(buttons_ & 0xff),
-            static_cast<uint8_t>(static_cast<int16_t>(moveX) & 0xFF),
-            static_cast<uint8_t>((static_cast<int16_t>(moveX) >> 8) & 0xFF),
-            static_cast<uint8_t>(static_cast<int16_t>(moveY) & 0xFF),
-            static_cast<uint8_t>((static_cast<int16_t>(moveY) >> 8) & 0xFF),
-            static_cast<uint8_t>(static_cast<int16_t>(scrollY) & 0xff),
-            static_cast<uint8_t>(static_cast<int16_t>(scrollX) & 0xff)
+            static_cast<uint8_t>(moveXNow & 0xFF),
+            static_cast<uint8_t>((moveXNow >> 8) & 0xFF),
+            static_cast<uint8_t>(moveYNow & 0xFF),
+            static_cast<uint8_t>((moveYNow >> 8) & 0xFF),
+            static_cast<uint8_t>(scrollYNow & 0xff),
+            static_cast<uint8_t>(scrollXNow & 0xff)
         };
-
-        moveX = 0;
-        moveY = 0;
-        scrollX = 0;
-        scrollY = 0;
 
         HID().SendReport(0x01, dat1, sizeof(dat1) / sizeof(dat1[0]));
         stateModified = false;
