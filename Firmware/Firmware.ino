@@ -78,5 +78,9 @@ void loop() {
         Serial.print(", ");
         Serial.println(sensorData.dy);
         #endif
+
+        Trackball.move(sensorData.dx, sensorData.dy);
     }
+
+    Trackball.send();
 }

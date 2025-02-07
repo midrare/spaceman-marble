@@ -16,6 +16,11 @@ public:
     void up(uint8_t buttons);
     void set(uint8_t buttons);
 
+    void move(double x, double y);
+    void scroll(double x, double y);
+
+    auto send(bool force = false) -> bool;
+
 private:
     uint8_t buttons_ = 0;
 
