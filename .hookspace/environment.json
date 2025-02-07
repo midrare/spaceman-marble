@@ -1,0 +1,4 @@
+{
+  "VIRTUAL_ENV": "{rootdir}/.venv",
+  "MYPYPATH": "{rootdir}/.venv/Lib/site-packages"
+}

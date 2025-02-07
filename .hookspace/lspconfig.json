@@ -1,0 +1,20 @@
+{
+  "python": {
+    "pythonPath": "{rootdir}/.venv/Scripts/python"
+  },
+  "pylsp": {
+    "plugins": {
+      "pycodestyle": {
+        "ignore": ["E122", "E126", "E127", "E128", "W391", "W503"]
+      }
+    }
+  },
+  "powershell": {
+    "scriptAnalysis": {
+      "settingsPath": "{datadir}/PSScriptAnalyzerSettings.psd1"
+    },
+    "codeFormatting": {
+        "Preset": "OTBS"
+    }
+  }
+}
