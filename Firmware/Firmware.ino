@@ -20,10 +20,15 @@
 #define MOUSE_EXTRA2_BUTTON_PIN 9
 
 #define DEFAULT_CPI 100
+#define DEBOUNCE_MUS 10000
 
 
 PMW3389 sensor;
 PMW3389_DATA sensorData = {};
+
+uint64_t lastUpdateMus = 0;
+uint64_t nowMus = 0;
+
 
 void setup() {
     if (SERIAL_BAUD >= 0) {
@@ -73,5 +78,8 @@ void loop() {
         Trackball.move(sensorData.dx, sensorData.dy);
     }
 
-    Trackball.send();
+    nowMus = micros();
+    if (nowMus - lastUpdateMus > DEBOUNCE_MUS && Trackball.send()) {
+        lastUpdateMus = nowMus;
+    }
 }
