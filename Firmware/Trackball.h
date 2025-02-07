@@ -19,6 +19,7 @@ public:
     void move(double x, double y);
     void scroll(double x, double y);
 
+    void setScrollResolutionMultiplier(uint8_t x, uint8_t y);
     void setMoveScale(double scaleX, double scaleY);
     void setScrollScale(double scaleX, double scaleY);
 
@@ -36,8 +37,9 @@ private:
     double scrollY = 0.0;
     double scrollScaleX = 1.0;
     double scrollScaleY = 1.0;
-    uint16_t scrollResX = 1000;
-    uint16_t scrollResY = 1000;
+
+    uint8_t scrollResX = 1;
+    uint8_t scrollResY = 1;
 
     bool stateModified = false;
     bool resModified = false;

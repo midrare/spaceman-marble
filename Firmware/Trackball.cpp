@@ -38,6 +38,10 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
             0x95, 0x02,    // REPORT COUNT (2),
             0x81, 0x06,    // INPUT (Var, Rel)
 
+            // in resolution multipliers, physical min and max must be
+            // greater than 0. see "4.3.1 Resolution Multiplier" in "HID Usage
+            // Tables for Universal Serial Bus Version 1.6" (hut1_6.pdf)
+
             0xa1, 0x02,    // COLLECTION (Logical)
                 0x85, 0x02,    // REPORT_ID (0x02)
                 0x09, 0x48,    // USAGE (Resolution Multiplier)
@@ -107,13 +111,14 @@ Trackball_t::Trackball_t() {
 
 void Trackball_t::begin() {
     buttons_ = 0;
+
     moveX = 0;
     moveY = 0;
     scrollY = 0;
     scrollX = 0;
 
-    scrollResX = 1000;
-    scrollResY = 1000;
+    scrollResX = 1;
+    scrollResY = 1;
 
     stateModified = false;
     resModified = false;
@@ -144,15 +149,21 @@ void Trackball_t::up(uint8_t buttons) {
 }
 
 void Trackball_t::move(double x, double y) {
+    stateModified = stateModified || x != 0.0 || y != 0.0;
     moveX += x;
     moveY += y;
-    stateModified = stateModified || x != 0 || y != 0;
 }
 
 void Trackball_t::scroll(double x, double y) {
+    stateModified = stateModified || x != 0.0 || y != 0.0;
     scrollX += x;
     scrollY += y;
-    stateModified = stateModified || x != 0 || y != 0;
+}
+
+void Trackball_t::setScrollResolutionMultiplier(uint8_t x, uint8_t y) {
+    resModified = resModified || scrollResX != x || scrollResY != y;
+    scrollResX = x;
+    scrollResY = y;
 }
 
 void Trackball_t::setMoveScale(double scaleX, double scaleY) {
@@ -172,6 +183,13 @@ void Trackball_t::setScrollScale(double scaleX, double scaleY) {
 auto Trackball_t::send(bool force) -> bool {
     if (!stateModified && !resModified && !force) {
         return false;
+    }
+
+    // order matters: resolution multiplier before movements
+    if (resModified || force) {
+        uint8_t dat2[] = { scrollResX, scrollResY };
+        HID().SendReport(0x02, dat2, sizeof(dat2) / sizeof(dat2[0]));
+        resModified = false;
     }
 
     if (stateModified || force) {
