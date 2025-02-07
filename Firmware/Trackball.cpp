@@ -96,9 +96,39 @@ Trackball_t::Trackball_t() {
 }
 
 void Trackball_t::begin() {
+    buttons_ = 0;
+    moveX = 0;
+    moveY = 0;
+    scrollY = 0;
+    scrollX = 0;
+
+    scrollResX = 1000;
+    scrollResY = 1000;
+
+    stateModified = false;
+    resModified = false;
 }
 
 void Trackball_t::end() {
+}
+
+auto Trackball_t::buttons() const -> uint8_t {
+    return buttons_;
+}
+
+void Trackball_t::set(uint8_t buttons) {
+    stateModified = buttons_ || buttons_ != buttons;
+    buttons_ = buttons;
+}
+
+void Trackball_t::down(uint8_t buttons) {
+    stateModified = stateModified || (~buttons_ & buttons) != 0;
+    buttons_ |= buttons;
+}
+
+void Trackball_t::up(uint8_t buttons) {
+    stateModified = stateModified || (buttons_ & ~buttons) != 0;
+    buttons_ &= ~buttons;
 }
 
 // WARN make sure only one instance exists else
