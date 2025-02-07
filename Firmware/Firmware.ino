@@ -2,6 +2,8 @@
 #include <Wire.h>
 
 #include "PMW3389.h"
+#include "Trackball.h"
+
 #define PMW3389_SENSOR_RESET_PIN 4
 #define PMW3389_SENSOR_NCS_PIN 5
 #include "PMW3389.h"
@@ -57,6 +59,10 @@ void setup() {
     // signature check fails, but device works regardless
     sensor.begin(PMW3389_SENSOR_NCS_PIN);
 
+    #if defined(SERIAL_ENABLED) && (SERIAL_ENABLED > 0)
+    Serial.println("Initializing mouse...");
+    #endif
+    Trackball.begin();
     #if defined(SERIAL_ENABLED) && (SERIAL_ENABLED > 0)
     Serial.println("Initialization done. Entering main loop...");
     #endif
