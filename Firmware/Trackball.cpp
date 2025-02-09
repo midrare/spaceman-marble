@@ -98,16 +98,16 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
         0xc0,    // END COLLECTION (Logical)
 
         // Custom vendor report for smooth scrolling
-        0xa1, 0x01,        // COLLECTION (Application)
+        0xa1, 0x01,    // COLLECTION (Application)
             0x85, 0x03,    // REPORT_ID (0x03)
             0x06, 0xFF, 0xFF, // USAGE PAGE (Vendor-defined)
-            0x09, 0x01,    // USAGE (Vendor-defined usage 1)
+            0x09, 0x01,    // USAGE (Vendor-defined)
             0x16, 0x00, 0x00, // LOGICAL MINIMUM (0)
             0x26, 0xFF, 0x00, // LOGICAL MAXIMUM (255)
             0x95, 0x08,    // REPORT COUNT (8)
             0x75, 0x08,    // REPORT SIZE (8)
             0x81, 0x02,    // INPUT (Var, Abs)
-        0xc0,    // END COLLECTION (Application)
+        0xc0,          // END COLLECTION (Application)
     0xc0,    // END COLLECTION (Application)
 };
 // clang-format on
