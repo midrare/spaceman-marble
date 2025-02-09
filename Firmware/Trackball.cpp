@@ -40,6 +40,8 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                 // greater than 0. see "4.3.1 Resolution Multiplier" in "HID Usage
                 // Tables for Universal Serial Bus Version 1.6" (hut1_6.pdf)
 
+                // FIXME resolution multipler does nothing (tested Win11)
+
                 0xa1, 0x02,    // COLLECTION (Logical)
                     0x85, 0x02,    // REPORT_ID (0x02)
                     0x09, 0x48,    // USAGE (Resolution Multiplier)
