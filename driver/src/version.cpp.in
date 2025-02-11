@@ -1,0 +1,105 @@
+#include <string>
+
+// clang-format off
+// NOLINTBEGIN
+
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "Simplify"
+#pragma ide diagnostic ignored "UnreachableCode"
+#pragma ide diagnostic ignored "readability-const-return-type"
+#pragma ide diagnostic ignored "cppcoreguidelines-avoid-magic-numbers"
+
+consteval auto c_strlen(const char* string) -> std::size_t {
+    const char* pos = string;
+    while (*pos != '\0') {
+        pos++;
+    }
+    return pos - string;
+}
+
+consteval auto c_stoi(const char* string) -> int {
+    bool end_loop = false;
+    int value = 0;
+    for (std::size_t i = 0; string[i] != '\0'; i++) {
+        // clang-format off
+        switch (string[i]) {
+            case '0': value *= 10; value += 0; break;
+            case '1': value *= 10; value += 1; break;
+            case '2': value *= 10; value += 2; break;
+            case '3': value *= 10; value += 3; break;
+            case '4': value *= 10; value += 4; break;
+            case '5': value *= 10; value += 5; break;
+            case '6': value *= 10; value += 6; break;
+            case '7': value *= 10; value += 7; break;
+            case '8': value *= 10; value += 8; break;
+            case '9': value *= 10; value += 9; break;
+            default: end_loop = true; break;
+        }
+        // clang-format on
+        if (end_loop) {
+            break;
+        }
+    }
+    return value;
+}
+
+constexpr const char* name_ = "@PROGRAM_NAME@";
+constexpr const char* file_path_component_ = "@PROGRAM_FILE_PATH_COMPONENT@";
+constexpr const char* version_ = "@PROGRAM_VERSION@";
+
+static_assert(c_strlen(name_) > 0, "Program name not specified.");
+static_assert(
+    c_strlen(file_path_component_) > 0,
+    "Program file path component not specified.");
+static_assert(c_strlen(version_) > 0, "Program version string not specified.");
+
+constexpr const int version_major_ = c_strlen("@PROGRAM_VERSION_MAJOR@") > 0
+                                         ? c_stoi("@PROGRAM_VERSION_MAJOR@")
+                                         : 0;
+constexpr const int version_minor_ = c_strlen("@PROGRAM_VERSION_MINOR@") > 0
+                                         ? c_stoi("@PROGRAM_VERSION_MINOR@")
+                                         : 0;
+constexpr const int version_patch_ = c_strlen("@PROGRAM_VERSION_PATCH@") > 0
+                                         ? c_stoi("@PROGRAM_VERSION_PATCH@")
+                                         : 0;
+constexpr const int version_tweak_ = c_strlen("@PROGRAM_VERSION_TWEAK@") > 0
+                                         ? c_stoi("@PROGRAM_VERSION_TWEAK@")
+                                         : 0;
+
+namespace program_info {
+[[nodiscard]] [[maybe_unused]] auto name() -> const std::string& {
+    static const std::string value = name_;
+    return value;
+}
+
+[[nodiscard]] [[maybe_unused]] auto file_path_component()
+    -> const std::string& {
+    static const std::string value = file_path_component_;
+    return value;
+}
+
+[[nodiscard]] [[maybe_unused]] auto version() -> const std::string& {
+    static const std::string value = version_;
+    return value;
+}
+
+[[nodiscard]] [[maybe_unused]] auto version_major() -> int {
+    return version_major_;
+}
+
+[[nodiscard]] [[maybe_unused]] auto version_minor() -> int {
+    return version_minor_;
+}
+
+[[nodiscard]] [[maybe_unused]] auto version_patch() -> int {
+    return version_patch_;
+}
+
+[[nodiscard]] [[maybe_unused]] auto version_tweak() -> int {
+    return version_tweak_;
+}
+} // namespace program_info
+#pragma clang diagnostic pop
+
+// NOLINTEND
+// clang-format on

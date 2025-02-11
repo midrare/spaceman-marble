@@ -1,0 +1,3 @@
+[submodule "driver/cmaux"]
+	path = driver/cmaux
+	url = git@github.com:midrare/cmaux.git
