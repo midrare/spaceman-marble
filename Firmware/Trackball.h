@@ -19,7 +19,6 @@ public:
     void move(double x, double y);
     void scroll(double x, double y);
 
-    void setScrollResolutionMultiplier(uint8_t x, uint8_t y);
     void setMoveScale(double scaleX, double scaleY);
     void setScrollScale(double scaleX, double scaleY);
 
@@ -42,7 +41,6 @@ private:
     uint8_t scrollResY = 1;
 
     bool stateModified = false;
-    bool resModified = false;
 };
 
 // singleton

@@ -141,7 +141,6 @@ void Trackball_t::begin() {
     scrollResY = 1;
 
     stateModified = false;
-    resModified = false;
 
     send(true);
 }
@@ -180,12 +179,6 @@ void Trackball_t::scroll(double x, double y) {
     scrollY += y;
 }
 
-void Trackball_t::setScrollResolutionMultiplier(uint8_t x, uint8_t y) {
-    resModified = resModified || scrollResX != x || scrollResY != y;
-    scrollResX = x;
-    scrollResY = y;
-}
-
 void Trackball_t::setMoveScale(double scaleX, double scaleY) {
     moveX /= scaleX;
     moveY /= scaleY;
@@ -201,15 +194,8 @@ void Trackball_t::setScrollScale(double scaleX, double scaleY) {
 }
 
 auto Trackball_t::send(bool force) -> bool {
-    if (!stateModified && !resModified && !force) {
+    if (!stateModified && !force) {
         return false;
-    }
-
-    // order matters: resolution multiplier before movements
-    if (resModified || force) {
-        uint8_t dat2[] = { scrollResX, scrollResY };
-        HID().SendReport(0x02, dat2, sizeof(dat2) / sizeof(dat2[0]));
-        resModified = false;
     }
 
     // TODO periodically ping PC to see if custom driver is listening
