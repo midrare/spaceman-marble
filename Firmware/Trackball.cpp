@@ -32,8 +32,8 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                 0x26, 0xff, 0x7f, // LOGICAL MAXIMUM (32,767)
                 0x36, 0x00, 0x80, // PHYSICAL MINIMUM (-32,768)
                 0x46, 0xff, 0x7f, // PHYSICAL MAXIMUM (32,767)
-                0x75, 0x10,    // REPORT SIZE (16),
                 0x95, 0x02,    // REPORT COUNT (2),
+                0x75, 0x10,    // REPORT SIZE (16),
                 0x81, 0x06,    // INPUT (Var, Rel)
 
                 // in resolution multipliers, physical min and max must be
@@ -53,8 +53,8 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                     0x45, 0x04,    // PHYSICAL MAXIMUM (4)
                     0x91, 0x02,    // FEATURE (Var, Abs)
 
-                    0x75, 0x06,    // REPORT SIZE (6)
                     0x95, 0x01,    // REPORT COUNT (1)
+                    0x75, 0x06,    // REPORT SIZE (6)
                     0x91, 0x03,    // FEATURE (Cnst, Var, Abs)
 
                     0x85, 0x01,    // REPORT_ID (0x01)
@@ -79,8 +79,8 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                     0x45, 0x04,    // PHYSICAL MAXIMUM (4)
                     0x91, 0x02,    // FEATURE (Var, Abs)
 
-                    0x75, 0x06,    // REPORT SIZE (6)
                     0x95, 0x01,    // REPORT COUNT (1)
+                    0x75, 0x06,    // REPORT SIZE (6)
                     0x91, 0x03,    // FEATURE (Cnst, Var, Abs)
 
                     0x85, 0x01,    // REPORT_ID (0x01)
