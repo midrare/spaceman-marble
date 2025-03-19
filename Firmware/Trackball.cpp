@@ -58,7 +58,8 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                     0x91, 0x03,    // FEATURE (Cnst, Var, Abs)
 
                     0x85, 0x01,    // REPORT_ID (0x01)
-                    0x09, 0x38,    // USAGE (Wheel)
+                    0x05, 0x0c,    // USAGE PAGE (Consumer Devices)
+                    0x0a, 0x38, 0x02, // USAGE (AC Pan)
                     0x15, 0x81,    // LOGICAL MINIMUM (-127)
                     0x25, 0x7f,    // LOGICAL MAXIMUM (127)
                     0x35, 0x81,    // PHYSICAL MINIMUM (-127)
@@ -84,8 +85,7 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                     0x91, 0x03,    // FEATURE (Cnst, Var, Abs)
 
                     0x85, 0x01,    // REPORT_ID (0x01)
-                    0x05, 0x0c,    // USAGE PAGE (Consumer Devices)
-                    0x0a, 0x38, 0x02, // USAGE (AC Pan)
+                    0x09, 0x38,    // USAGE (Wheel)
                     0x15, 0x81,    // LOGICAL MINIMUM (-127)
                     0x25, 0x7f,    // LOGICAL MAXIMUM (127)
                     0x35, 0x81,    // PHYSICAL MINIMUM (-127)
@@ -96,135 +96,185 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                 0xc0,    // END COLLECTION (Logical)
             0xc0,    // END COLLECTION (Physical)
         0xc0,    // END COLLECTION (Logical)
+    0xc0,    // END COLLECTION (Application)
 
-        // Custom vendor report for smooth scrolling
-        0xa1, 0x01,    // COLLECTION (Application)
-            0x85, 0x03,    // REPORT_ID (0x03)
-            0x06, 0xFF, 0xFF, // USAGE PAGE (Vendor-defined)
+
+    // Second interface for custom smooth scrolling
+    0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
+    0x09, 0x01,        // USAGE (Vendor-defined)
+    0xa1, 0x01,        // COLLECTION (Application)
+
+        0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
+        0x09, 0x01,        // USAGE (Vendor-defined)
+        0xa1, 0x02,        // COLLECTION (Logical)
+
+            0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
             0x09, 0x01,    // USAGE (Vendor-defined)
-            0x16, 0x00, 0x00, // LOGICAL MINIMUM (0)
-            0x26, 0xFF, 0x00, // LOGICAL MAXIMUM (255)
-            0x95, 0x08,    // REPORT COUNT (8)
-            0x75, 0x08,    // REPORT SIZE (8)
-            0x81, 0x02,    // INPUT (Var, Abs)
-        0xc0,          // END COLLECTION (Application)
+            0xa1, 0x00,    // COLLECTION (Physical)
+
+                // for keeping track of the driver state (active or not)
+                0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
+                0x09, 0x01,    // USAGE (Vendor-defined)
+                0x85, 0x03,    // REPORT_ID (0x03)
+                0x15, 0x00,    // LOGICAL MINIMUM (0)
+                0x25, 0xff,    // LOGICAL MAXIMUM (255)
+                0x35, 0x00,    // PHYSICAL MINIMUM (0)
+                0x45, 0xff,    // PHYSICAL MAXIMUM (255)
+                0x95, 0x01,    // REPORT COUNT (4)
+                0x75, 0x10,    // REPORT SIZE (8)
+                0xb1, 0x02,    // FEATURE (Var, Abs)
+
+                0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
+                0x09, 0x01,    // USAGE (Vendor-defined)
+                0x85, 0x04,    // REPORT_ID (0x04)
+                0x15, 0x00,    // LOGICAL MINIMUM (0)
+                0x25, 0xff,    // LOGICAL MAXIMUM (255)
+                0x35, 0x00,    // PHYSICAL MINIMUM (0)
+                0x45, 0xff,    // PHYSICAL MAXIMUM (255)
+                0x95, 0x04,    // REPORT COUNT (4),
+                0x75, 0x08,    // REPORT SIZE (8),
+                0x81, 0x02,    // INPUT (Var, Abs)
+
+            0xc0,    // END COLLECTION (Physical)
+        0xc0,    // END COLLECTION (Logical)
     0xc0,    // END COLLECTION (Application)
 };
 // clang-format on
 
 
 auto subtractMaxIntegral(double& value, double scale) -> int16_t {
-    double moveXNowF = 0.0;
-    value = modf(value * scale, &moveXNowF) / scale;
-    return static_cast<int16_t>(moveXNowF);
+  double moveXNowF = 0.0;
+  value = modf(value * scale, &moveXNowF) / scale;
+  return static_cast<int16_t>(moveXNowF);
 }
 
 
 Trackball_t::Trackball_t() {
-    static HIDSubDescriptor node(
-      hidReportDescriptor,
-      sizeof(hidReportDescriptor)
-    );
+  static HIDSubDescriptor node = {
+    hidReportDescriptor,
+    sizeof(hidReportDescriptor),
+  };
 
-    HID().AppendDescriptor(&node);
+  HID().AppendDescriptor(&node);
 }
 
 void Trackball_t::begin() {
-    buttons_ = 0;
+  reset();
 
-    moveX = 0;
-    moveY = 0;
-    scrollY = 0;
-    scrollX = 0;
+  if (!hidInitialized) {
+    HID().begin();
 
-    scrollResX = 1;
-    scrollResY = 1;
+    hidInitialized = true;
+  }
 
-    stateModified = false;
-
-    send(true);
+  send(true);
 }
 
 void Trackball_t::end() {
+  reset();
+}
+
+void Trackball_t::reset() {
+  buttons_ = 0;
+
+  moveX = 0;
+  moveY = 0;
+  moveScaleX = 1.0;
+  moveScaleY = 1.0;
+
+  scrollX = 0;
+  scrollY = 0;
+  scrollScaleX = 1.0;
+  scrollScaleY = 1.0;
+
+  stateModified = false;
 }
 
 auto Trackball_t::buttons() const -> uint8_t {
-    return buttons_;
+  return buttons_;
 }
 
 void Trackball_t::set(uint8_t buttons) {
-    stateModified = buttons_ || buttons_ != buttons;
-    buttons_ = buttons;
+  stateModified = stateModified || buttons_ != buttons;
+  buttons_ = buttons;
 }
 
 void Trackball_t::down(uint8_t buttons) {
-    stateModified = stateModified || (~buttons_ & buttons) != 0;
-    buttons_ |= buttons;
+  stateModified = stateModified || (~buttons_ & buttons) != 0;
+  buttons_ |= buttons;
 }
 
 void Trackball_t::up(uint8_t buttons) {
-    stateModified = stateModified || (buttons_ & ~buttons) != 0;
-    buttons_ &= ~buttons;
+  stateModified = stateModified || (buttons_ & ~buttons) != 0;
+  buttons_ &= ~buttons;
 }
 
 void Trackball_t::move(double x, double y) {
-    stateModified = stateModified || x != 0.0 || y != 0.0;
-    moveX += x;
-    moveY += y;
+  stateModified = stateModified || x != 0.0 || y != 0.0;
+  moveX += x;
+  moveY += y;
 }
 
 void Trackball_t::scroll(double x, double y) {
-    stateModified = stateModified || x != 0.0 || y != 0.0;
-    scrollX += x;
-    scrollY += y;
+  stateModified = stateModified || x != 0.0 || y != 0.0;
+  scrollX += x;
+  scrollY += y;
 }
 
 void Trackball_t::setMoveScale(double scaleX, double scaleY) {
-    moveX /= scaleX;
-    moveY /= scaleY;
-    moveScaleX = scaleX;
-    moveScaleY = scaleY;
+  moveX /= scaleX;
+  moveY /= scaleY;
+  moveScaleX = scaleX;
+  moveScaleY = scaleY;
 }
 
 void Trackball_t::setScrollScale(double scaleX, double scaleY) {
-    scrollX /= scaleX;
-    scrollY /= scaleY;
-    scrollScaleX = scaleX;
-    scrollScaleY = scaleY;
+  scrollX /= scaleX;
+  scrollY /= scaleY;
+  scrollScaleX = scaleX;
+  scrollScaleY = scaleY;
 }
 
 auto Trackball_t::send(bool force) -> bool {
-    if (!stateModified && !force) {
-        return false;
-    }
+  if (!stateModified && !force) {
+    return false;
+  }
 
-    // TODO periodically ping PC to see if custom driver is listening
+  if (stateModified || force) {
+    auto moveXNow = subtractMaxIntegral(moveX, moveScaleX);
+    auto moveYNow = subtractMaxIntegral(moveY, moveScaleY);
 
-    if (stateModified || force) {
-        auto moveXNow = subtractMaxIntegral(moveX, moveScaleX);
-        auto moveYNow = subtractMaxIntegral(moveY, moveScaleY);
+    auto scrollXNow = subtractMaxIntegral(scrollX, scrollScaleX);
+    auto scrollYNow = subtractMaxIntegral(scrollY, scrollScaleY);
 
-        auto scrollXNow = subtractMaxIntegral(scrollX, scrollScaleX);
-        auto scrollYNow = subtractMaxIntegral(scrollY, scrollScaleY);
+    uint8_t mouseReport[] = {
+      static_cast<uint8_t>(buttons_ & 0xff),
+      static_cast<uint8_t>(moveXNow & 0xFF),
+      static_cast<uint8_t>((moveXNow >> 8) & 0xFF),
+      static_cast<uint8_t>(moveYNow & 0xFF),
+      static_cast<uint8_t>((moveYNow >> 8) & 0xFF),
+      static_cast<uint8_t>(scrollXNow & 0xff),
+      static_cast<uint8_t>(scrollYNow & 0xff),
+    };
+    HID().SendReport(0x01, mouseReport, sizeof(mouseReport) / sizeof(mouseReport[0]));
 
-        uint8_t dat1[] = {
-            static_cast<uint8_t>(buttons_ & 0xff),
-            static_cast<uint8_t>(moveXNow & 0xFF),
-            static_cast<uint8_t>((moveXNow >> 8) & 0xFF),
-            static_cast<uint8_t>(moveYNow & 0xFF),
-            static_cast<uint8_t>((moveYNow >> 8) & 0xFF),
-            static_cast<uint8_t>(scrollYNow & 0xff),
-            static_cast<uint8_t>(scrollXNow & 0xff)
-        };
+    uint8_t customScrollReport[]{
+      static_cast<uint8_t>(scrollXNow & 0xff),
+      static_cast<uint8_t>((scrollXNow >> 8) & 0xff),
+      static_cast<uint8_t>(scrollYNow & 0xff),
+      static_cast<uint8_t>((scrollYNow >> 8) & 0xff),
+    };
+    HID().SendReport(
+      0x10,
+      customScrollReport,
+      sizeof(customScrollReport) / sizeof(customScrollReport[0]));
 
-        HID().SendReport(0x01, dat1, sizeof(dat1) / sizeof(dat1[0]));
-        stateModified = false;
-    }
+    stateModified = false;
+  }
 
-    return true;
+  return true;
 }
 
 // WARN make sure only one instance exists else
 //   HID().AppendDescriptor() will be called once for each instance
 Trackball_t Trackball;
-
