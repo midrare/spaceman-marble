@@ -43,98 +43,57 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                 // FIXME resolution multipler does nothing (tested Win11)
 
                 0xa1, 0x02,    // COLLECTION (Logical)
-                    0x85, 0x02,    // REPORT_ID (0x02)
-                    0x09, 0x48,    // USAGE (Resolution Multiplier)
-                    0x95, 0x01,    // REPORT COUNT (1)
-                    0x75, 0x02,    // REPORT SIZE (2)
-                    0x15, 0x00,    // LOGICAL MINIMUM (0)
-                    0x25, 0x01,    // LOGICAL MAXIMUM (1)
-                    0x35, 0x01,    // PHYSICAL MINIMUM (1)
-                    0x45, 0x04,    // PHYSICAL MAXIMUM (4)
-                    0x91, 0x02,    // FEATURE (Var, Abs)
+                  0x85, 0x02,    // REPORT_ID (0x02)
+                  0x09, 0x48,    // USAGE (Resolution Multiplier)
+                  0x95, 0x01,    // REPORT COUNT (1)
+                  0x75, 0x02,    // REPORT SIZE (2)
+                  0x15, 0x00,    // LOGICAL MINIMUM (0)
+                  0x25, 0x01,    // LOGICAL MAXIMUM (1)
+                  0x35, 0x01,    // PHYSICAL MINIMUM (1)
+                  0x45, 0x78,    // PHYSICAL MAXIMUM (120)
+                  0xb1, 0x02,    // FEATURE (Var, Abs)
 
-                    0x95, 0x01,    // REPORT COUNT (1)
-                    0x75, 0x06,    // REPORT SIZE (6)
-                    0x91, 0x03,    // FEATURE (Cnst, Var, Abs)
+                  0x95, 0x01,    // REPORT COUNT (1)
+                  0x75, 0x06,    // REPORT SIZE (6)
+                  0xb1, 0x03,    // FEATURE (Cnst, Var, Abs)
 
-                    0x85, 0x01,    // REPORT_ID (0x01)
-                    0x05, 0x0c,    // USAGE PAGE (Consumer Devices)
-                    0x0a, 0x38, 0x02, // USAGE (AC Pan)
-                    0x15, 0x81,    // LOGICAL MINIMUM (-127)
-                    0x25, 0x7f,    // LOGICAL MAXIMUM (127)
-                    0x35, 0x81,    // PHYSICAL MINIMUM (-127)
-                    0x45, 0x7f,    // PHYSICAL MAXIMUM (127)
-                    0x95, 0x01,    // REPORT COUNT (1)
-                    0x75, 0x08,    // REPORT SIZE (8)
-                    0x81, 0x06,    // INPUT (Var, Rel)
+                  0x85, 0x01,    // REPORT_ID (0x01)
+                  0x09, 0x38,    // USAGE (Wheel)
+                  0x35, 0x00,    // PHYSICAL MINIMUM (0)
+                  0x45, 0x00,    // PHYSICAL MAXIMUM (0)
+                  0x16, 0x00, 0x80,  // LOGICAL MINIMUM (-32768)
+                  0x26, 0xFF, 0x7F,  // LOGICAL MAXIMUM (32767)
+                  0x95, 0x01,    // REPORT COUNT (1)
+                  0x75, 0x10,    // REPORT SIZE (16)
+                  0x81, 0x06,    // INPUT (Var, Rel)
                 0xc0,    // END COLLECTION (Logical)
 
                 0xa1, 0x02,    // COLLECTION (Logical)
-                    0x85, 0x02,    // REPORT_ID (0x02)
-                    0x09, 0x48,    // USAGE (Resolution Multiplier)
-                    0x95, 0x01,    // REPORT COUNT (1)
-                    0x75, 0x02,    // REPORT SIZE (2)
-                    0x15, 0x00,    // LOGICAL MINIMUM (0)
-                    0x25, 0x01,    // LOGICAL MAXIMUM (1)
-                    0x35, 0x01,    // PHYSICAL MINIMUM (1)
-                    0x45, 0x04,    // PHYSICAL MAXIMUM (4)
-                    0x91, 0x02,    // FEATURE (Var, Abs)
+                  0x85, 0x02,    // REPORT_ID (0x02)
+                  0x09, 0x48,    // USAGE (Resolution Multiplier)
+                  0x95, 0x01,    // REPORT COUNT (1)
+                  0x75, 0x02,    // REPORT SIZE (2)
+                  0x15, 0x00,    // LOGICAL MINIMUM (0)
+                  0x25, 0x01,    // LOGICAL MAXIMUM (1)
+                  0x35, 0x01,    // PHYSICAL MINIMUM (1)
+                  0x45, 0x78,    // PHYSICAL MAXIMUM (120)
+                  0xb1, 0x02,    // FEATURE (Var, Abs)
 
-                    0x95, 0x01,    // REPORT COUNT (1)
-                    0x75, 0x06,    // REPORT SIZE (6)
-                    0x91, 0x03,    // FEATURE (Cnst, Var, Abs)
+                  0x95, 0x01,    // REPORT COUNT (1)
+                  0x75, 0x06,    // REPORT SIZE (6)
+                  0xb1, 0x03,    // FEATURE (Cnst, Var, Abs)
 
-                    0x85, 0x01,    // REPORT_ID (0x01)
-                    0x09, 0x38,    // USAGE (Wheel)
-                    0x15, 0x81,    // LOGICAL MINIMUM (-127)
-                    0x25, 0x7f,    // LOGICAL MAXIMUM (127)
-                    0x35, 0x81,    // PHYSICAL MINIMUM (-127)
-                    0x45, 0x7f,    // PHYSICAL MAXIMUM (127)
-                    0x95, 0x01,    // REPORT COUNT (1)
-                    0x75, 0x08,    // REPORT SIZE (8)
-                    0x81, 0x06,    // INPUT (Var, Rel)
+                  0x85, 0x01,    // REPORT_ID (0x01)
+                  0x05, 0x0c,    // USAGE PAGE (Consumer Devices)
+                  0x0a, 0x38, 0x02, // USAGE (AC Pan)
+                  0x35, 0x00,    // PHYSICAL MINIMUM (0)
+                  0x45, 0x00,    // PHYSICAL MAXIMUM (0)
+                  0x16, 0x00, 0x80,  // LOGICAL MINIMUM (-32768)
+                  0x26, 0xFF, 0x7F,  // LOGICAL MAXIMUM (32767)
+                  0x95, 0x01,    // REPORT COUNT (1)
+                  0x75, 0x10,    // REPORT SIZE (16)
+                  0x81, 0x06,    // INPUT (Var, Rel)
                 0xc0,    // END COLLECTION (Logical)
-            0xc0,    // END COLLECTION (Physical)
-        0xc0,    // END COLLECTION (Logical)
-    0xc0,    // END COLLECTION (Application)
-
-
-    // Second interface for custom smooth scrolling
-    0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
-    0x09, 0x01,        // USAGE (Vendor-defined)
-    0xa1, 0x01,        // COLLECTION (Application)
-
-        0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
-        0x09, 0x01,        // USAGE (Vendor-defined)
-        0xa1, 0x02,        // COLLECTION (Logical)
-
-            0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
-            0x09, 0x01,    // USAGE (Vendor-defined)
-            0xa1, 0x00,    // COLLECTION (Physical)
-
-                // for keeping track of the driver state (active or not)
-                0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
-                0x09, 0x01,    // USAGE (Vendor-defined)
-                0x85, 0x03,    // REPORT_ID (0x03)
-                0x15, 0x00,    // LOGICAL MINIMUM (0)
-                0x25, 0xff,    // LOGICAL MAXIMUM (255)
-                0x35, 0x00,    // PHYSICAL MINIMUM (0)
-                0x45, 0xff,    // PHYSICAL MAXIMUM (255)
-                0x95, 0x01,    // REPORT COUNT (4)
-                0x75, 0x10,    // REPORT SIZE (8)
-                0xb1, 0x02,    // FEATURE (Var, Abs)
-
-                0x06, 0xFF, 0xFF,  // USAGE PAGE (Vendor-defined)
-                0x09, 0x01,    // USAGE (Vendor-defined)
-                0x85, 0x04,    // REPORT_ID (0x04)
-                0x15, 0x00,    // LOGICAL MINIMUM (0)
-                0x25, 0xff,    // LOGICAL MAXIMUM (255)
-                0x35, 0x00,    // PHYSICAL MINIMUM (0)
-                0x45, 0xff,    // PHYSICAL MAXIMUM (255)
-                0x95, 0x04,    // REPORT COUNT (4),
-                0x75, 0x08,    // REPORT SIZE (8),
-                0x81, 0x02,    // INPUT (Var, Abs)
-
             0xc0,    // END COLLECTION (Physical)
         0xc0,    // END COLLECTION (Logical)
     0xc0,    // END COLLECTION (Application)
@@ -156,6 +115,9 @@ Trackball_t::Trackball_t() {
   };
 
   HID().AppendDescriptor(&node);
+
+  static const uint8_t resMult[] = { 0x00, 0x78 };
+  HID().SetFeature(0x02, resMult, sizeof(resMult) * sizeof(resMult[0]));
 }
 
 void Trackball_t::begin() {
@@ -218,7 +180,7 @@ void Trackball_t::move(double x, double y) {
 void Trackball_t::scroll(double x, double y) {
   stateModified = stateModified || x != 0.0 || y != 0.0;
   scrollX += x;
-  scrollY += y;
+  scrollY -= y;
 }
 
 void Trackball_t::setMoveScale(double scaleX, double scaleY) {
@@ -253,21 +215,12 @@ auto Trackball_t::send(bool force) -> bool {
       static_cast<uint8_t>((moveXNow >> 8) & 0xFF),
       static_cast<uint8_t>(moveYNow & 0xFF),
       static_cast<uint8_t>((moveYNow >> 8) & 0xFF),
-      static_cast<uint8_t>(scrollXNow & 0xff),
-      static_cast<uint8_t>(scrollYNow & 0xff),
-    };
-    HID().SendReport(0x01, mouseReport, sizeof(mouseReport) / sizeof(mouseReport[0]));
-
-    uint8_t customScrollReport[]{
-      static_cast<uint8_t>(scrollXNow & 0xff),
-      static_cast<uint8_t>((scrollXNow >> 8) & 0xff),
       static_cast<uint8_t>(scrollYNow & 0xff),
       static_cast<uint8_t>((scrollYNow >> 8) & 0xff),
+      static_cast<uint8_t>(scrollXNow & 0xff),
+      static_cast<uint8_t>((scrollXNow >> 8) & 0xff),
     };
-    HID().SendReport(
-      0x10,
-      customScrollReport,
-      sizeof(customScrollReport) / sizeof(customScrollReport[0]));
+    HID().SendReport(0x01, mouseReport, sizeof(mouseReport) / sizeof(mouseReport[0]));
 
     stateModified = false;
   }
