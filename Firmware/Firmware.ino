@@ -1,40 +1,147 @@
-#include <SPI.h>
-
-#include "PMW3389.h"
-#include "Scroll.h"
-#include "Trackball.h"
-
 #define PMW3389_SENSOR_MOT_PIN 3
 #define PMW3389_SENSOR_RESET_PIN 4
 #define PMW3389_SENSOR_NCS_PIN 5
-#include "PMW3389.h"
 
 #define MOUSE_LEFT_BUTTON_PIN 6
 #define MOUSE_FORWARD_BUTTON_PIN 7
-
 #define MOUSE_RIGHT_BUTTON_PIN 18
-#define MOUSE_BACK_BUTTON_PIN 19
-
-#define MOUSE_MIDDLE_BUTTON_PIN 20
+#define MOUSE_MIDDLE_BUTTON_PIN 19
+#define MOUSE_BACK_BUTTON_PIN 20
 #define MOUSE_EXTRA1_BUTTON_PIN 8
 #define MOUSE_EXTRA2_BUTTON_PIN 9
 
-#define DEFAULT_CPI 800u
 
-ScrollOffsets scrollOff;
-ScrollAcceleration scroll;
+#include <math.h>
 
+#include <EEPROM.h>
+#include <Keyhole.h>
+#include <SPI.h>
+
+#include "Acceleration.h"
+#include "Trackball.h"
+#include "PMW3389.h"
+
+
+// config variables
+bool enableMoveAccel = true;
+bool enableScrollAccel = true;
+
+uint16_t throttleMus = 10000;
+uint16_t sensorCpi = 800;
+
+
+// state variables
 PMW3389 sensor;
 PMW3389_DATA sensorData = {};
-
-uint64_t throttleMus = 5000;
+double sensorScale = 0.1;
+double sensorAccumulatedX = 0.0;
+double sensorAccumulatedY = 0.0;
 
 uint64_t nowMus = 0;
-uint8_t buttons = 0b00000000;
-
 uint64_t lastLoopMus = 0;
 uint64_t lastUpdateMus = 0;
-uint8_t lastButtons = 0x00;
+
+uint8_t buttons = 0b00000000;
+uint8_t lastButtons = 0b00000000;
+
+
+template <typename T, typename ...Args>
+void prints(const T& arg, Args... args) {
+  if (!Serial1) {
+    return;
+  }
+  
+  Serial1.print(arg);
+
+  if constexpr ((sizeof...(Args)) > 0) {
+    prints(args...);
+  }
+}
+
+
+template <typename T, typename ...Args>
+void printsln(const T& arg, Args... args) {
+  if (!Serial1) {
+    return;
+  }
+  
+  prints(arg, args...);
+  Serial1.println();
+}
+
+
+static auto subtractMaxIntegral(double& value, double factor) -> int16_t {
+  double valueF = 0.0;
+  value = modf(value * factor, &valueF) / factor;
+  return static_cast<int16_t>(valueF);
+}
+
+
+static void readConfig() {
+  size_t pos = 0;
+
+  EEPROM.get(pos, sensorCpi);
+  pos += sizeof(sensorCpi);
+
+  EEPROM.get(pos, throttleMus);
+  pos += sizeof(throttleMus);
+
+  EEPROM.get(pos, enableMoveAccel);
+  pos += sizeof(enableMoveAccel);
+
+  EEPROM.get(pos, enableScrollAccel);
+  pos += sizeof(enableScrollAccel);
+
+  uint8_t buttonMap[8];
+  EEPROM.get(pos, buttonMap);
+  pos += sizeof(buttonMap);
+  Trackball.setMappings(buttonMap, sizeof(buttonMap));
+}
+
+
+static void writeConfig() {
+  size_t pos = 0;
+
+  EEPROM.put(pos, sensorCpi);
+  pos += sizeof(sensorCpi);
+
+  EEPROM.put(pos, throttleMus);
+  pos += sizeof(throttleMus);
+
+  EEPROM.put(pos, enableMoveAccel);
+  pos += sizeof(enableMoveAccel);
+
+  EEPROM.put(pos, enableScrollAccel);
+  pos += sizeof(enableScrollAccel);
+
+  uint8_t buttonMap[8];
+  Trackball.getMappings(buttonMap, sizeof(buttonMap));
+  EEPROM.put(pos, buttonMap);
+  pos += sizeof(buttonMap);
+}
+
+
+static void resetConfig() {
+  enableMoveAccel = true;
+  enableScrollAccel = true;
+
+  throttleMus = 10000;
+  sensorCpi = 800;
+
+  Trackball.setMapping(MOUSE_LEFT, MOUSE_LEFT);
+  Trackball.setMapping(MOUSE_RIGHT, MOUSE_RIGHT);
+  Trackball.setMapping(MOUSE_BACK, MOUSE_BACK);
+  Trackball.setMapping(MOUSE_MIDDLE, MOUSE_MIDDLE);
+  Trackball.setMapping(MOUSE_FORWARD, MOUSE_FORWARD);
+  Trackball.setMapping(MOUSE_EXTRA1, MOUSE_EXTRA1);
+  Trackball.setMapping(MOUSE_EXTRA2, MOUSE_EXTRA2);
+
+  writeConfig();
+
+  if (sensor.getCPI() != sensorCpi) {
+    sensor.setCPI(sensorCpi);
+  }
+}
 
 
 void setup() {
@@ -43,6 +150,14 @@ void setup() {
     delay(100);
   }
 
+
+  // DEBUG
+  Serial1.println("WARNING: RESETTING CONFIG");
+  resetConfig();
+
+  printsln("EEPROM capacity: ", EEPROM.length(), "B");
+
+  prints("Initializing pull-up resistors... ");
   pinMode(MOUSE_LEFT_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MOUSE_RIGHT_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MOUSE_BACK_BUTTON_PIN, INPUT_PULLUP);
@@ -50,19 +165,28 @@ void setup() {
   pinMode(MOUSE_MIDDLE_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MOUSE_EXTRA1_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MOUSE_EXTRA2_BUTTON_PIN, INPUT_PULLUP);
+  printsln("done.");
 
+  prints("Reading config from EEPROM... ");
+  readConfig();
+  printsln("done.");
 
+  prints("Initializing sensor... ");
   pinMode(PMW3389_SENSOR_NCS_PIN, OUTPUT);
   digitalWrite(PMW3389_SENSOR_NCS_PIN, HIGH);
   pinMode(PMW3389_SENSOR_RESET_PIN, OUTPUT);
   digitalWrite(PMW3389_SENSOR_RESET_PIN, HIGH);
   // signature check fails, but device works regardless
-  sensor.begin(PMW3389_SENSOR_NCS_PIN, DEFAULT_CPI);
+  sensor.begin(PMW3389_SENSOR_NCS_PIN, sensorCpi);
+  printsln("done.");
 
-
+  prints("Initializing HID device... ");
   Trackball.begin();
-  Trackball.setMoveScale(0.05, 0.05);
-  Trackball.setScrollScale(0.01, 0.01);
+  Trackball.setMoveScale(0.50, 0.50);
+  Trackball.setScrollScale(0.50, 0.50);
+  printsln("done.");
+
+  printsln("Initialization done. Entering main loop.");
 
   nowMus = micros();
   lastLoopMus = nowMus;
@@ -75,26 +199,60 @@ void loop() {
 
   if (nowMus - lastLoopMus > 0) {
     sensorData = sensor.readBurst();
-    if (sensorData.isOnSurface && sensorData.isMotion) {
-      // scrollOff = scroll.scroll(sensorData.dx, sensorData.dy, nowMus / 1000, false);
-      // Trackball.scroll(-scrollOff.dx, scrollOff.dy);
-      Trackball.move(sensorData.dx, sensorData.dy);
+    
+    sensorAccumulatedX += sensorData.dx;
+    sensorAccumulatedY += sensorData.dy;
+
+    int16_t dx = subtractMaxIntegral(sensorAccumulatedX, sensorScale);
+    int16_t dy = subtractMaxIntegral(sensorAccumulatedY, sensorScale);
+
+    Trackball.move(-dx, dy);
+
+    Trackball.set(MOUSE_LEFT, (digitalRead(MOUSE_LEFT_BUTTON_PIN) == LOW));
+    Trackball.set(MOUSE_RIGHT, (digitalRead(MOUSE_RIGHT_BUTTON_PIN) == LOW));
+    Trackball.set(MOUSE_BACK, (digitalRead(MOUSE_BACK_BUTTON_PIN) == LOW));
+    Trackball.set(MOUSE_FORWARD, (digitalRead(MOUSE_FORWARD_BUTTON_PIN) == LOW));
+    Trackball.set(MOUSE_MIDDLE, (digitalRead(MOUSE_MIDDLE_BUTTON_PIN) == LOW));
+    Trackball.set(MOUSE_EXTRA1, (digitalRead(MOUSE_EXTRA1_BUTTON_PIN) == LOW));
+    Trackball.set(MOUSE_EXTRA2, (digitalRead(MOUSE_EXTRA2_BUTTON_PIN) == LOW));
+  }
+
+  KEYHOLE keyhole(Serial1);
+  if (keyhole.begin()) {
+    if (keyhole.command("reset!")) {
+      printsln("Resetting config.");
+      resetConfig();
     }
 
-    buttons = 0b00000000
-      | ((digitalRead(MOUSE_LEFT_BUTTON_PIN) == LOW) << 0)
-      | ((digitalRead(MOUSE_RIGHT_BUTTON_PIN) == LOW) << 1)
-      | ((digitalRead(MOUSE_BACK_BUTTON_PIN) == LOW) << 2)
-      | ((digitalRead(MOUSE_FORWARD_BUTTON_PIN) == LOW) << 3)
-      | ((digitalRead(MOUSE_MIDDLE_BUTTON_PIN) == LOW) << 4)
-      | ((digitalRead(MOUSE_EXTRA1_BUTTON_PIN) == LOW) << 5)
-      | ((digitalRead(MOUSE_EXTRA2_BUTTON_PIN) == LOW) << 6);
-    Trackball.set(buttons);
+    if (keyhole.command("write!")) {
+      printsln("Writing config.");
+      writeConfig();
+    }
+
+    uint8_t buttonMap[8];
+    Trackball.getMappings(buttonMap, sizeof(buttonMap));
+
+    keyhole.variable("button_left", buttonMap[MOUSE_LEFT]);
+    keyhole.variable("button_right", buttonMap[MOUSE_RIGHT]);
+    keyhole.variable("button_back", buttonMap[MOUSE_BACK]);
+    keyhole.variable("button_forward", buttonMap[MOUSE_FORWARD]);
+    keyhole.variable("button_middle", buttonMap[MOUSE_MIDDLE]);
+    keyhole.variable("button_extra1", buttonMap[MOUSE_EXTRA1]);
+    keyhole.variable("button_extra2", buttonMap[MOUSE_EXTRA2]);
+
+    keyhole.variable("move_accel", enableMoveAccel);
+    keyhole.variable("scroll_accel", enableScrollAccel);
+    keyhole.variable("throttle_mus", throttleMus);
+
+    keyhole.variable("sensor_cpi", sensorCpi);
+
+    keyhole.end();
+
+    sensor.setCPI(sensorCpi);
+    Trackball.setMappings(buttonMap, sizeof(buttonMap));
   }
 
-  if ((throttleMus <= 0 || ((nowMus - lastUpdateMus) > throttleMus)) && Trackball.send()) {
-    lastUpdateMus = nowMus;
-  }
-  
+  Trackball.send(nowMus);
+  lastUpdateMus = nowMus;
   lastLoopMus = nowMus;
 }

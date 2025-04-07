@@ -84,7 +84,7 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
                   0xb1, 0x03,    // FEATURE (Cnst, Var, Abs)
 
                   0x85, 0x01,    // REPORT_ID (0x01)
-                  0x05, 0x0c,    // USAGE PAGE (Consumer Devices)
+                  0x05, 0x0c,    // USAGE PAGE (Consumer Trackballs)
                   0x0a, 0x38, 0x02, // USAGE (AC Pan)
                   0x35, 0x00,    // PHYSICAL MINIMUM (0)
                   0x45, 0x00,    // PHYSICAL MAXIMUM (0)
@@ -101,7 +101,7 @@ static const uint8_t hidReportDescriptor[] PROGMEM = {
 // clang-format on
 
 
-auto subtractMaxIntegral(double& value, double scale) -> int16_t {
+static auto subtractMaxIntegral(double& value, double scale) -> int16_t {
   double moveXNowF = 0.0;
   value = modf(value * scale, &moveXNowF) / scale;
   return static_cast<int16_t>(moveXNowF);
@@ -123,13 +123,13 @@ Trackball_t::Trackball_t() {
 void Trackball_t::begin() {
   reset();
 
+  static bool hidInitialized = false;
   if (!hidInitialized) {
     HID().begin();
-
     hidInitialized = true;
   }
 
-  send(true);
+  send(micros());
 }
 
 void Trackball_t::end() {
@@ -137,7 +137,7 @@ void Trackball_t::end() {
 }
 
 void Trackball_t::reset() {
-  buttons_ = 0;
+  btnState = 0;
 
   moveX = 0;
   moveY = 0;
@@ -148,39 +148,42 @@ void Trackball_t::reset() {
   scrollY = 0;
   scrollScaleX = 1.0;
   scrollScaleY = 1.0;
-
-  stateModified = false;
 }
 
 auto Trackball_t::buttons() const -> uint8_t {
-  return buttons_;
+  return btnState;
 }
 
-void Trackball_t::set(uint8_t buttons) {
-  stateModified = stateModified || buttons_ != buttons;
-  buttons_ = buttons;
+[[nodiscard]] auto Trackball_t::getMapping(uint8_t btnId) const -> uint8_t {
+  return buttonMap[btnId];
 }
 
-void Trackball_t::down(uint8_t buttons) {
-  stateModified = stateModified || (~buttons_ & buttons) != 0;
-  buttons_ |= buttons;
+void Trackball_t::setMapping(uint8_t srcId, uint8_t tgtId) {
+  buttonMap[srcId] = tgtId;
 }
 
-void Trackball_t::up(uint8_t buttons) {
-  stateModified = stateModified || (buttons_ & ~buttons) != 0;
-  buttons_ &= ~buttons;
+void Trackball_t::setMappings(uint8_t* buf, size_t bufLen) {
+  memcpy(buttonMap, buf, min(bufLen, sizeof(buttonMap)));
+}
+
+void Trackball_t::getMappings(uint8_t* buf, size_t bufLen) const {
+  memcpy(buf, buttonMap, min(bufLen, sizeof(buttonMap)));
+}
+
+void Trackball_t::set(uint8_t btnId, bool isDown) {
+  uint8_t mask = (isDown << btnId);
+  btnState |= mask;  // down
+  btnState &= mask | ~(1 << btnId); // up
 }
 
 void Trackball_t::move(double x, double y) {
-  stateModified = stateModified || x != 0.0 || y != 0.0;
   moveX += x;
   moveY += y;
 }
 
 void Trackball_t::scroll(double x, double y) {
-  stateModified = stateModified || x != 0.0 || y != 0.0;
   scrollX += x;
-  scrollY -= y;
+  scrollY += y;
 }
 
 void Trackball_t::setMoveScale(double scaleX, double scaleY) {
@@ -197,35 +200,104 @@ void Trackball_t::setScrollScale(double scaleX, double scaleY) {
   scrollScaleY = scaleY;
 }
 
-auto Trackball_t::send(bool force) -> bool {
-  if (!stateModified && !force) {
-    return false;
+
+void Trackball_t::send(uint64_t timestampMus) {
+  uint8_t scrollBtnState = btnState & scrollButtonMap;
+  uint8_t prevScrollBtnState = prevBtnState & scrollButtonMap;
+
+  if (scrollBtnState != 0) {
+    bool isInScrollMode = (scrollButtonsInMode & scrollBtnState) != 0;
+    if (!isInScrollMode) {
+      bool isInDeadZone = fabs(accumulatedX + moveX) <= deadZone
+          && fabs(accumulatedY + moveY) <= deadZone;
+      if (isInDeadZone) {
+        // in dead zone; accumulate movements
+        accumulatedX += moveX;
+        accumulatedY += moveY;
+
+        moveX = 0.0;
+        moveY = 0.0;
+      } else {
+        // exceeded dead zone; enter scroll mode
+        scrollButtonsInMode |= scrollBtnState;
+      }
+    }
+  } else {
+    accumulatedX = 0.0;
+    accumulatedY = 0.0;
   }
 
-  if (stateModified || force) {
-    auto moveXNow = subtractMaxIntegral(moveX, moveScaleX);
-    auto moveYNow = subtractMaxIntegral(moveY, moveScaleY);
+  // if in scroll mode, turn cursor movement into scrolling
+  if ((scrollButtonsInMode & scrollBtnState) != 0) {
+    scrollX += moveX + accumulatedX;
+    scrollY += moveY + accumulatedY;
 
-    auto scrollXNow = subtractMaxIntegral(scrollX, scrollScaleX);
-    auto scrollYNow = subtractMaxIntegral(scrollY, scrollScaleY);
+    moveX = 0.0;
+    moveY = 0.0;
 
-    uint8_t mouseReport[] = {
-      static_cast<uint8_t>(buttons_ & 0xff),
-      static_cast<uint8_t>(moveXNow & 0xFF),
-      static_cast<uint8_t>((moveXNow >> 8) & 0xFF),
-      static_cast<uint8_t>(moveYNow & 0xFF),
-      static_cast<uint8_t>((moveYNow >> 8) & 0xFF),
-      static_cast<uint8_t>(scrollYNow & 0xff),
-      static_cast<uint8_t>((scrollYNow >> 8) & 0xff),
-      static_cast<uint8_t>(scrollXNow & 0xff),
-      static_cast<uint8_t>((scrollXNow >> 8) & 0xff),
-    };
-    HID().SendReport(0x01, mouseReport, sizeof(mouseReport) / sizeof(mouseReport[0]));
-
-    stateModified = false;
+    accumulatedX = 0.0;
+    accumulatedY = 0.0;
   }
 
-  return true;
+  // effective button state: suppress buttons in scroll mode
+  uint8_t effectiveBtnState = btnState & ~scrollBtnState;
+
+  // scroll buttons released without entering scroll mode?
+  if ((prevScrollBtnState & ~scrollBtnState & ~scrollButtonsInMode) != 0) {
+    // register press event. will flip to release event on next send
+    effectiveBtnState |= (prevScrollBtnState & ~scrollBtnState);
+  }
+
+  scrollButtonsInMode &= btnState;
+
+  // map buttons to HID report positions
+  uint8_t sendButtons =
+    (((effectiveBtnState & (1 << MOUSE_LEFT)) != 0)      << buttonMap[MOUSE_LEFT])
+    | (((effectiveBtnState & (1 << MOUSE_RIGHT)) != 0)   << buttonMap[MOUSE_RIGHT])
+    | (((effectiveBtnState & (1 << MOUSE_BACK)) != 0)    << buttonMap[MOUSE_BACK])
+    | (((effectiveBtnState & (1 << MOUSE_MIDDLE)) != 0)  << buttonMap[MOUSE_MIDDLE])
+    | (((effectiveBtnState & (1 << MOUSE_FORWARD)) != 0) << buttonMap[MOUSE_FORWARD])
+    | (((effectiveBtnState & (1 << MOUSE_EXTRA1)) != 0)  << buttonMap[MOUSE_EXTRA1])
+    | (((effectiveBtnState & (1 << MOUSE_EXTRA2)) != 0)  << buttonMap[MOUSE_EXTRA2]);
+
+  auto moveOff = moveAccel.update(moveX, moveY, timestampMus / 1000);
+
+  auto moveXNow = static_cast<int16_t>(floor(moveOff.dx * moveScaleX));
+  auto moveYNow = static_cast<int16_t>(floor(moveOff.dy * moveScaleY));
+
+  moveX = 0.0;
+  moveY = 0.0;
+
+
+  auto scrollOff = scrollAccel.update(
+    scrollX,
+    scrollY,
+    timestampMus / 1000,
+    prevScrollButtonsInMode == 0
+  );
+
+  auto scrollXNow = static_cast<int16_t>(floor(scrollOff.dx * scrollScaleX));
+  auto scrollYNow = static_cast<int16_t>(-floor(scrollOff.dy * scrollScaleY));
+
+  scrollX = 0.0;
+  scrollY = 0.0;
+
+
+  uint8_t mouseReport[] = {
+    static_cast<uint8_t>(sendButtons & 0xff),
+    static_cast<uint8_t>(moveXNow & 0xFF),
+    static_cast<uint8_t>((moveXNow >> 8) & 0xFF),
+    static_cast<uint8_t>(moveYNow & 0xFF),
+    static_cast<uint8_t>((moveYNow >> 8) & 0xFF),
+    static_cast<uint8_t>(scrollYNow & 0xff),
+    static_cast<uint8_t>((scrollYNow >> 8) & 0xff),
+    static_cast<uint8_t>(scrollXNow & 0xff),
+    static_cast<uint8_t>((scrollXNow >> 8) & 0xff),
+  };
+  HID().SendReport(0x01, mouseReport, sizeof(mouseReport) / sizeof(mouseReport[0]));
+
+  prevBtnState = btnState;
+  prevScrollButtonsInMode = scrollButtonsInMode;
 }
 
 // WARN make sure only one instance exists else
